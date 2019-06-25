@@ -520,8 +520,9 @@ class Variable(object):
     def __init__(self, data=None, **kwargs):
         # type: (tp.Optional[types.NdArray], **tp.Any) -> None
 
-        name, grad, requires_grad = argument.parse_kwargs(
+        name, grad, requires_grad, is_calculated = argument.parse_kwargs(
             kwargs, ('name', None), ('grad', None), ('requires_grad', True),
+            ('is_calculated', False),
             volatile='volatile argument is not supported anymore. '
                      'Use chainer.using_config')
         assert isinstance(requires_grad, bool)
@@ -533,11 +534,13 @@ class Variable(object):
                     array_types[-1], type(data))
                 raise TypeError(msg)
 
-        self._init_impl(data, None, name, grad, requires_grad, None, None)
+        self._init_impl(data, None, name, grad,
+                        requires_grad, None, None, is_calculated)
 
     @staticmethod
     def _init_unchecked(data=None, device=None, name=None, grad=None,
-                        requires_grad=True, is_chainerx_array=None, node=None):
+                        requires_grad=True, is_chainerx_array=None, node=None,
+                        is_calculated=False):
         """Creates a new :class:`Variable` without the validations for
         optimizing performance.
         """
@@ -545,11 +548,12 @@ class Variable(object):
         # Create a Variable without invoking __init__
         var = Variable.__new__(Variable)
         var._init_impl(
-            data, device, name, grad, requires_grad, is_chainerx_array, node)
+            data, device, name, grad, requires_grad,
+            is_chainerx_array, node, is_calculated)
         return var
 
     def _init_impl(self, data, device, name, grad, requires_grad,
-                   is_chainerx_array, node):
+                   is_chainerx_array, node, is_calculated):
         # Use a list as a data structure to hold the data array indirectly to
         # abstract its initialized/uninitialized state.
 
@@ -560,6 +564,7 @@ class Variable(object):
         self._loss_scale = None
         self._grad_var = None
         self._device = device
+        self._is_calculated = is_calculated
 
         if is_chainerx_array is None:
             is_chainerx_array = isinstance(data, chainerx.ndarray)
@@ -665,9 +670,10 @@ class Variable(object):
             if not array.is_backprop_required():
                 array = array.view()
             if requires_grad:
-                array.require_grad()
-                if grad is not None:
-                    array.set_grad(grad)
+                if (not self._is_calculated) or (grad is not None):
+                    array.require_grad()
+                    if grad is not None:
+                        array.set_grad(grad)
             self._data = [array]
 
         self._has_chainerx_array = True  # even if data is None

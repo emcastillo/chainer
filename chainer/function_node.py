@@ -32,7 +32,8 @@ def _to_variable_with_chainerx_fallback_array(
         device=chainerx_device,
         requires_grad=(
             False if chainerx_array is None
-            else chainerx_array.is_backprop_required()))
+            else chainerx_array.is_backprop_required()),
+        is_calculated=True)
     var._chainerx_fallback_array = fallback_array
     return var
 
@@ -278,12 +279,12 @@ Use apply() method instead.\
             if outputs is not chainer.Fallback:
                 # Supported. Wrap with variables and return
                 assert isinstance(outputs, tuple)
+                print(outputs)
                 return tuple([
                     variable.Variable._init_unchecked(
                         y, requires_grad=y.is_backprop_required(),
-                        is_chainerx_array=True)
+                        is_chainerx_array=True, is_calculated=True)
                     for y in outputs])
-
             # Fall back to FunctionNode.forward()
             chainerx_in_data, in_data, chainerx_device = (
                 self._chainerx_apply_fallback_preprocess(in_data, inputs))
@@ -359,7 +360,6 @@ Use apply() method instead.\
         else:
             input_vars = [chainer.as_variable(x) for x in inputs]
             requires_grad = any([x.requires_grad for x in input_vars])
-
             ret = tuple(
                 [variable.Variable(y, requires_grad=requires_grad)
                  for y in outputs])
