@@ -13,42 +13,25 @@ from chainer.utils import conv
 
 
 @testing.parameterize(*(testing.product({
-    'dims': [(5,), (4, 3), (3, 4, 3)],
-    'dilate': [1, 2],
-    'groups': [1, 2],
-    'cover_all': [True, False],
+    'dims': [(3, 4, 3)],
+    'dilate': [1],
+    'groups': [1],
+    'cover_all': [False],
     'contiguous': ['C'],
     'x_dtype': [numpy.float32],
     'W_dtype': [numpy.float32],
     'b_dtype': [numpy.float32],
-    'autotune': [True, False],
-    'nobias': [True, False],
-}) + testing.product({
-    'dims': [(4,)],
-    'dilate': [1],
-    'groups': [1],
-    'cover_all': [False],
-    'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'b_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'autotune': [False],
-    'nobias': [True, False],
-})))
-@testing.inject_backend_tests(
-    ['test_forward', 'test_backward', 'test_double_backward',
-     'test_consistency_forward', 'test_consistency_regression_forward'],
-    # CPU tests
-    [{}]
+    'nobias': [True],
+})
+))
+@testing.backend.inject_backend_tests(
+    ['test_backward'],
     # GPU tests
-    + testing.product({
+    testing.product({
         'use_cuda': [True],
-        'use_cudnn': ['never', 'always'],
+        'use_cudnn': ['always'],
     })
-    # ChainerX tests
-    + [
-        {'use_chainerx': True, 'chainerx_device': 'native:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
-    ]
 )
 class TestConvolutionND(testing.FunctionTestCase):
 
@@ -86,15 +69,135 @@ class TestConvolutionND(testing.FunctionTestCase):
         self.backend_config.autotune = self.autotune
 
     def generate_inputs(self):
-        W = numpy.random.normal(
-            0, self.W_scale, self.W_shape).astype(self.W_dtype)
-        x = numpy.random.uniform(-1, 1, self.x_shape).astype(self.x_dtype)
-        if self.nobias:
-            return x, W
-        else:
-            b = numpy.random.uniform(
-                -1, 1, self.out_channels).astype(self.x_dtype)
-            return x, W, b
+        x = numpy.array([[[[[-0.8823272, 0.6131382,  0.86463654],
+               [0.11194135, 0.88676322, 0.42647043],
+               [-0.20192941, -0.98400348, -0.78130376],
+               [-0.52930802, -0.19726318, 0.75485343]],
+              [[0.04853087, -0.88076162, 0.86724848],
+               [-0.31268078, -0.87448382, 0.10666238],
+               [-0.98736793, -0.24605104, 0.02490044],
+               [0.09785793, -0.1743833, -0.47036079]],
+              [[-0.70007354, 0.82943285, 0.88016629],
+               [0.10320293, 0.7133323, -0.7938081],
+               [-0.286479, -0.67209786, 0.61273545],
+               [-0.62313056, -0.84743476, -0.09276333]]],
+             [[[-0.00610436, -0.1043255, -0.23532592],
+               [0.23320048, -0.14558177, 0.76505369],
+               [0.465639, 0.54129332, -0.26486519],
+               [0.37524906, 0.12965487, -0.25241411]],
+              [[0.56828195, 0.89734906, 0.46847522],
+               [0.53712404, -0.66756177, 0.57094866],
+               [0.23569751, -0.88983226, 0.72906196],
+               [-0.54325289, 0.15825422, 0.74877274]],
+              [[-0.13186575, -0.09333009, -0.06908098],
+               [-0.2222739, -0.25785187, -0.08888257],
+               [-0.02194866, 0.45750022, 0.42542419],
+               [-0.72229141, -0.94305032, -0.72463328]]],
+             [[[0.70540488, 0.56837678, -0.06946059],
+               [0.12961771, -0.25402614, 0.07446931],
+               [-0.79150587, -0.08218948, -0.51742911],
+               [-0.85377777, -0.01509822, 0.80446208]],
+              [[0.8697266, -0.35224861, 0.84715629],
+               [0.68951064, -0.16286138, -0.69622082],
+               [-0.78958714, -0.6864109, -0.76098889],
+               [0.37617922, -0.56765538, -0.82319248]],
+              [[-0.50741565, -0.18473019, 0.7298696],
+               [0.87962466, -0.62938863, 0.97150195],
+               [-0.93123907, 0.57831347, -0.08802591],
+               [0.19540727, -0.58127904, 0.11935739]]],
+             [[[0.85931116, 0.65560311, -0.50346762],
+               [0.50876933, -0.66312152, 0.86391586],
+               [0.96287495, 0.06403111, 0.60429794],
+               [-0.74909413, 0.53354019, 0.90760392]],
+              [[0.03315394, 0.14968276, -0.27573946],
+               [0.99138457, -0.80701846, 0.36064494],
+               [0.49557599, 0.82481426, 0.34359792],
+               [0.38081279, 0.91443062, 0.09274513]],
+              [[0.83713633, -0.47952798, 0.86369085],
+               [-0.63290966, -0.2198915, 0.37171873],
+               [-0.90874249, 0.0798021, 0.9095304],
+               [-0.01114714, 0.52890921, 0.52052283]]]],
+            [[[[0.15953584, -0.99280882, -0.24477039],
+               [0.37755013, 0.6625936, -0.33255982],
+               [-0.09177765, 0.55144459, 0.82491577],
+               [0.55710524, -0.10613681, -0.11052907]],
+              [[0.2743569, 0.26544088, 0.22575882],
+               [0.88851726, -0.72325867, -0.02870545],
+               [0.67766625, -0.29378873, -0.13693309],
+               [-0.59440345, -0.24830411, -0.58396798]],
+              [[0.36989325, -0.11707999, -0.99600804],
+               [0.4859615, -0.58701789, -0.80845189],
+               [0.70058149, -0.62604588, 0.97490805],
+               [0.03108785, 0.62681627, 0.77645254]]],
+             [[[-0.78873217, 0.46510237, 0.01201081],
+               [0.60518181, 0.52379465, 0.73005897],
+               [-0.54768783, -0.40876511, -0.42208949],
+               [0.58165485, -0.59022409, -0.54840058]],
+              [[0.99090958, -0.85471827, 0.79387909],
+               [0.82515597, -0.36577663, 0.82126105],
+               [0.19178699, -0.02151809, -0.51051307],
+               [-0.41002381, 0.67360258, -0.19940946]],
+              [[0.45562848, 0.08934583, 0.3303839],
+               [0.67371607, -0.87731266, 0.78660667],
+               [-0.01524884, 0.27006912, 0.54422331],
+               [0.49809596, 0.79190499, 0.04763947]]],
+             [[[0.7510668, 0.76562256, 0.73204446],
+               [0.46194884, 0.60437506, 0.83596087],
+               [-0.44507781, 0.26774451, -0.74094588],
+               [-0.64627039, 0.91972882, -0.24656188]],
+              [[0.2458199, 0.69617933, -0.29660469],
+               [0.65255928, 0.11528312, -0.97463942],
+               [0.02757186, 0.78420794, -0.80858713],
+               [-0.75926483, 0.58702016, 0.84013724]],
+              [[-0.76883537, -0.19646542, 0.04685465],
+               [-0.56279647, -0.78189856, -0.45884079],
+               [-0.07422841, -0.54840761, 0.59182304],
+               [-0.20180023, 0.53715241, 0.0389958]]],
+             [[[0.44247845, -0.7989729, 0.83005232],
+               [-0.01062572, 0.21264425, 0.4322294],
+               [-0.48983362, 0.11480696, 0.87325394],
+               [-0.83909482, 0.89883769, -0.34270036]],
+              [[-0.00654173, 0.28942293, -0.56598341],
+               [-0.56195694, 0.00904089, -0.07872166],
+               [-0.19466661, 0.46977082, 0.78525025],
+               [-0.53416896, 0.55962253, 0.92392713]],
+              [[0.42959198, 0.9770878, 0.73365742],
+               [0.46095055, -0.37159741, 0.65967],
+               [-0.33526066, -0.0426557, -0.89695048],
+               [0.02912281, -0.65081209, 0.42873001]]]]], dtype=numpy.float32)
+        w = numpy.array([[[[[-0.21628861, 0.13329744],
+               [0.02105098, -0.06162651]],
+              [[0.01125129, 0.18246424],
+               [0.24662766, -0.20520839]]],
+             [[[0.00401485, 0.04552686],
+               [-0.27911061, 0.02265515]],
+              [[0.25892466, 0.30617112],
+               [-0.195509, 0.32488719]]],
+             [[[-0.28197402, -0.14756326],
+               [-0.21139102, -0.1064516]],
+              [[-0.05848339, -0.35768339],
+               [-0.10420159, -0.31264725]]],
+             [[[-0.09139866, -0.12142801],
+               [0.23019817, 0.04453282]],
+              [[-0.17029288, 0.20243087],
+               [0.05808243, 0.07410312]]]],
+            [[[[0.04838814, -0.09385115],
+               [-0.3233594, 0.16621442]],
+              [[-0.25166276, 0.19395444],
+               [0.09484466, 0.13010082]]],
+             [[[0.03963762, 0.14212114],
+               [-0.23330308, 0.07610424]],
+              [[0.07381711, -0.15468371],
+               [0.34201655, 0.02768536]]],
+             [[[-0.18825535, -0.09148455],
+               [-0.04662469, -0.14189774]],
+              [[0.04120675, 0.20379175],
+               [0.08808119, 0.13588923]]],
+             [[[0.08068034, -0.20092404],
+               [0.33406773, 0.25891271]],
+              [[0.10604174, 0.07387235],
+               [0.01128606, -0.08477429]]]]], dtype=numpy.float32)
+        return x, w
 
     def forward_expected(self, inputs):
         if self.nobias:
@@ -119,223 +222,6 @@ class TestConvolutionND(testing.FunctionTestCase):
             cover_all=self.cover_all, dilate=self.dilate,
             groups=self.groups)
         return y,
-
-    def check_forward_consistency(self, backend_config):
-        inputs = self.generate_inputs()
-        if self.nobias:
-            x, W = inputs
-            b = None
-        else:
-            x, W, b = inputs
-        x_cpu = chainer.Variable(x)
-        W_cpu = chainer.Variable(W)
-        b_cpu = None if b is None else chainer.Variable(b)
-        y_cpu = F.convolution_nd(
-            x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
-            cover_all=self.cover_all, dilate=self.dilate,
-            groups=self.groups)
-
-        x = backend_config.get_array(x)
-        W = backend_config.get_array(W)
-        if self.nobias:
-            b = None
-        else:
-            b = backend_config.get_array(b)
-        with backend_config:
-            y_gpu = F.convolution_nd(
-                x, W, b, stride=self.stride, pad=self.pad,
-                cover_all=self.cover_all, dilate=self.dilate,
-                groups=self.groups)
-
-        testing.assert_allclose(
-            y_cpu.array, y_gpu.array, **self.check_forward_options)
-
-    def test_consistency_forward(self, backend_config):
-        if backend_config.use_cuda or backend_config.use_chainerx:
-            self.check_forward_consistency(backend_config)
-
-    def check_forward_consistency_regression(self, backend_config):
-        inputs = self.generate_inputs()
-        if self.nobias:
-            x, W = inputs
-            b = None
-        else:
-            x, W, b = inputs
-        x = chainer.Variable(backend_config.get_array(x))
-        W = chainer.Variable(backend_config.get_array(W))
-        if b is not None:
-            b = chainer.Variable(backend_config.get_array(b))
-
-        with chainer.using_config('use_cudnn', 'never'):
-            y_nd = F.convolution_nd(
-                x, W, b, stride=self.stride, pad=self.pad,
-                cover_all=self.cover_all, dilate=self.dilate,
-                groups=self.groups)
-            y_2d = F.convolution_2d(
-                x, W, b, stride=self.stride, pad=self.pad,
-                cover_all=self.cover_all, dilate=self.dilate,
-                groups=self.groups)
-
-        testing.assert_allclose(
-            y_nd.array, y_2d.array, **self.check_forward_options)
-
-    def test_consistency_regression_forward(self, backend_config):
-        # Regression test to convolution_2d.
-        if len(self.dims) == 2:
-            self.check_forward_consistency_regression(backend_config)
-
-
-@testing.parameterize(*testing.product({
-    'dims': [(10,), (10, 8), (10, 8, 6)],
-    'use_cudnn': ['always', 'auto', 'never'],
-    'dtype': [numpy.float16, numpy.float32, numpy.float64],
-}))
-@attr.cudnn
-class TestConvolutionNDCudnnCall(unittest.TestCase):
-
-    def setUp(self):
-        in_channels = 3
-        out_channels = 2
-        ndim = len(self.dims)
-        ksize = (3,) * ndim
-        self.stride = (2,) * ndim
-        self.pad = (1,) * ndim
-        x_shape = (2, 3) + self.dims
-        self.x = cuda.cupy.random.uniform(-1, 1, x_shape).astype(self.dtype)
-        W_scale = numpy.sqrt(1. / functools.reduce(mul, ksize, in_channels))
-        W_shape = (out_channels, in_channels) + ksize
-        self.W = cuda.cupy.random.normal(
-            0, W_scale, W_shape).astype(self.dtype)
-        gy_shape = (2, 2) + tuple(
-            conv.get_conv_outsize(d, k, s, p) for (d, k, s, p) in zip(
-                self.dims, ksize, self.stride, self.pad))
-        self.gy = cuda.cupy.random.uniform(-1, 1, gy_shape).astype(self.dtype)
-        with chainer.using_config('use_cudnn', self.use_cudnn):
-            self.expect = chainer.should_use_cudnn('>=auto') and ndim > 1
-
-    def forward(self):
-        x = chainer.Variable(cuda.to_gpu(self.x))
-        W = chainer.Variable(cuda.to_gpu(self.W))
-        return F.convolution_nd(
-            x, W, None, stride=self.stride, pad=self.pad)
-
-    def test_call_cudnn_forward(self):
-        with chainer.using_config('use_cudnn', self.use_cudnn):
-            with testing.patch('cupy.cudnn.convolution_forward') as func:
-                self.forward()
-                self.assertEqual(func.called, self.expect)
-
-    def test_call_cudnn_backward(self):
-        with chainer.using_config('use_cudnn', self.use_cudnn):
-            y = self.forward()
-            y.grad = self.gy
-            name = 'cupy.cudnn.convolution_backward_data'
-            with testing.patch(name) as func:
-                y.backward()
-                self.assertEqual(func.called, self.expect)
-
-
-class TestConvolutionNDarraySupplied(unittest.TestCase):
-
-    def setUp(self):
-        N = 2
-        in_channels = 3
-        out_channels = 2
-        dtype = numpy.float32
-
-        x_shape = (N, in_channels, 3, 3, 3)
-        self.x_data = numpy.random.uniform(-1, 1, x_shape).astype(dtype)
-        W_shape = (out_channels, in_channels, 1, 1, 1)
-        self.W_data = numpy.random.uniform(-1, 1, W_shape).astype(dtype)
-        self.b_data = numpy.random.uniform(-1, 1, out_channels).astype(dtype)
-
-    def check_array_supplied(self, x_ary, W_ary, b_ary):
-        y_ary = F.convolution_nd(x_ary, W_ary, b_ary)
-
-        x_var = chainer.Variable(x_ary)
-        W_var = chainer.Variable(W_ary)
-        b_var = chainer.Variable(b_ary)
-        y_var = F.convolution_nd(x_var, W_var, b_var)
-
-        testing.assert_allclose(y_ary.data, y_var.data)
-
-    def test_array_supplied_cpu(self):
-        self.check_array_supplied(self.x_data, self.W_data, self.b_data)
-
-    @attr.gpu
-    def test_array_supplied_gpu(self):
-        self.check_array_supplied(cuda.to_gpu(self.x_data),
-                                  cuda.to_gpu(self.W_data),
-                                  cuda.to_gpu(self.b_data))
-
-
-class TestConvolutionNDBackwardNoncontiguousGradOutputs(unittest.TestCase):
-    # NumPy raises an error when the inputs of dot operation are not
-    # contiguous. This test ensures this issue is correctly handled.
-    # (https://github.com/chainer/chainer/issues/2744)
-
-    # This test depdends on that backward() of F.sum generates
-    # a non-contiguous array.
-
-    def test_1(self):
-        n_batches = 2
-        in_channels = 3
-        out_channels = 1  # important
-        x_shape = (n_batches, in_channels, 4)
-        w_shape = (out_channels, in_channels, 3)
-        x = numpy.ones(x_shape, numpy.float32)
-        w = numpy.ones(w_shape, numpy.float32)
-        y = F.convolution_nd(chainer.Variable(x), w)
-        z = F.sum(y)
-        z.backward()
-
-    def test_2(self):
-        n_batches = 2
-        in_channels = 3
-        out_channels = 1  # important
-        x_shape = (n_batches, in_channels, 4)
-        w_shape = (out_channels, in_channels, 3)
-        x = numpy.ones(x_shape, numpy.float32)
-        w = numpy.ones(w_shape, numpy.float32)
-        y = F.convolution_nd(x, chainer.Variable(w))
-        z = F.sum(y)
-        z.backward()
-
-
-class TestConvolutionNDWrappers(unittest.TestCase):
-
-    def _get_data(self, ndim):
-        in_channels = 3
-        out_channels = 2
-        dtype = numpy.float32
-
-        x_shape = (2, in_channels) + (3,) * ndim
-        x = numpy.random.uniform(-1, 1, x_shape).astype(dtype)
-        W_shape = (out_channels, in_channels) + (1,) * ndim
-        W = numpy.random.uniform(-1, 1, W_shape).astype(dtype)
-        b = numpy.random.uniform(-1, 1, out_channels).astype(dtype)
-
-        return x, W, b
-
-    def test_conv1d(self):
-        (x, W, b) = self._get_data(1)
-        testing.assert_allclose(
-            F.convolution_nd(x, W, b).data, F.convolution_1d(x, W, b).data)
-
-    def test_conv1d_invalid(self):
-        (x, W, b) = self._get_data(2)
-        with self.assertRaises(ValueError):
-            F.convolution_1d(x, W, b)
-
-    def test_conv3d(self):
-        (x, W, b) = self._get_data(3)
-        testing.assert_allclose(
-            F.convolution_nd(x, W, b).data, F.convolution_3d(x, W, b).data)
-
-    def test_conv3d_invalid(self):
-        (x, W, b) = self._get_data(2)
-        with self.assertRaises(ValueError):
-            F.convolution_3d(x, W, b)
 
 
 testing.run_module(__name__, __file__)
