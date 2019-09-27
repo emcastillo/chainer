@@ -79,9 +79,11 @@ class ParallelUpdater(standard_updater.StandardUpdater):
             except ValueError:
                 raise KeyError('\'devices\' must contain a \'main\' key.')
 
-            models = {'main': optimizer.target}
+            target = self.get_optimizer('main').target
+            models = {'main': target}
             for name in names:
-                model = copy.deepcopy(optimizer.target)
+                target = self.get_optimizer(name).target
+                model = copy.deepcopy(target)
                 model.to_device(devices[name])
                 models[name] = model
             optimizer.target.to_device(devices['main'])
